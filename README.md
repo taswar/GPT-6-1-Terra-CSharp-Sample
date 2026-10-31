@@ -73,7 +73,7 @@ Example 2 is a small agent loop written by hand:
 
 1. The first request sends the PDF, the instructions, the `check_supplier` tool and the `invoice_review` JSON schema.
 2. Terra replies with a `function_call`. The app runs `CheckSupplierAsync` and sends back a `function_call_output`.
-3. Follow-up requests use `previous_response_id`, so the service keeps the conversation, including reasoning items, and the app doesn't resend the PDF.
+3. Follow-up requests use `previous_response_id`, so the service keeps the conversation, including reasoning items, and the app doesn't resend the PDF. They do resend the instructions, because `previous_response_id` doesn't carry those over.
 4. When there are no more tool calls, the final `output_text` is JSON that matches the schema, and it's deserialized with `JsonNamingPolicy.SnakeCaseLower`:
 
 ```csharp
@@ -82,7 +82,7 @@ record InvoiceReview(
     string PoNumber, string Currency, decimal Total, bool RequiresApproval, List<string> Issues);
 ```
 
-The loop stops after five rounds as a safety limit. Strict mode needs every schema property listed in `required` and `additionalProperties` set to `false`.
+If Terra still asks for a tool after five rounds, the app stops with an error instead of using an unfinished answer. The approval decision is made in C#, not by the model: the invoice needs approval if the total is over 5,000 or the supplier isn't active in the vendor master. The app prints the model's `requires_approval` next to it and warns when they disagree. Strict mode needs every schema property listed in `required` and `additionalProperties` set to `false`.
 
 ## Good to know
 

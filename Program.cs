@@ -131,6 +131,12 @@ static class InvoiceAgentExample
         Use an empty list when there is nothing to flag.
         """;
 
+    // The approval rule, applied in code. The model's requires_approval is only a second opinion.
+    const decimal ApprovalThreshold = 5000m;
+
+    // A model that still wants tools after this many rounds is stuck; stop and send the invoice to a person.
+    const int MaxToolRounds = 5;
+
     public static async Task RunAsync(TerraClient terra, string pdfPath, CancellationToken cancellationToken)
     {
         Console.WriteLine("=== Example 2: review a PDF invoice ===");
@@ -143,7 +149,6 @@ static class InvoiceAgentExample
         var body = new JsonObject
         {
             ["model"] = terra.Deployment,
-            ["instructions"] = Instructions,
             ["input"] = new JsonArray
             {
                 new JsonObject
@@ -170,15 +175,18 @@ static class InvoiceAgentExample
         usage.Add(response.RootElement);
 
         // The tool loop: run every function call Terra asks for, then send the results back.
-        // previous_response_id chains the turns on the service, including the reasoning items.
-        for (var round = 1; round <= 5; round++)
+        // previous_response_id chains the turns on the service, including the reasoning items,
+        // but not the instructions, so AddToolsAndFormat sends them again on every turn.
+        for (var round = 1; HasToolCalls(response.RootElement); round++)
         {
-            var outputs = await RunToolCallsAsync(response.RootElement);
-            if (outputs.Count == 0)
+            if (round > MaxToolRounds)
             {
-                break;
+                response.Dispose();
+                throw new InvalidOperationException(
+                    $"Terra still asked for tools after {MaxToolRounds} rounds. Send this invoice to a person.");
             }
 
+            var outputs = await RunToolCallsAsync(response.RootElement);
             var next = new JsonObject
             {
                 ["model"] = terra.Deployment,
@@ -202,11 +210,19 @@ static class InvoiceAgentExample
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
         }) ?? throw new InvalidOperationException($"The model returned no invoice review: {json}");
 
+        // The decision: the total from the model, the supplier status from the vendor master.
+        var supplier = FindSupplier(review.SupplierName);
+        var needsApproval = review.Total > ApprovalThreshold || supplier is not { Status: "active" };
+
         Console.WriteLine();
-        Console.WriteLine($"Supplier:       {review.SupplierName} (on file: {review.SupplierOnFile})");
+        Console.WriteLine($"Supplier:       {review.SupplierName} (status: {supplier?.Status ?? "not on file"})");
         Console.WriteLine($"Invoice:        {review.InvoiceNumber}, dated {review.InvoiceDate}, PO {review.PoNumber}");
         Console.WriteLine($"Total:          {review.Total:N2} {review.Currency}");
-        Console.WriteLine($"Needs approval: {review.RequiresApproval}");
+        Console.WriteLine($"Needs approval: {needsApproval} (the model said {review.RequiresApproval})");
+        if (needsApproval != review.RequiresApproval)
+        {
+            Console.WriteLine("Warning:        the model disagrees with the approval rule. The rule wins; log this.");
+        }
         foreach (var issue in review.Issues)
         {
             Console.WriteLine($"Issue:          {issue}");
@@ -215,6 +231,9 @@ static class InvoiceAgentExample
         Console.WriteLine();
         Console.WriteLine($"[terra] {usage} elapsed={stopwatch.Elapsed.TotalSeconds:0.0}s");
     }
+
+    static bool HasToolCalls(JsonElement root) =>
+        root.GetProperty("output").EnumerateArray().Any(item => item.GetProperty("type").GetString() == "function_call");
 
     // Runs each function_call in the response and returns the function_call_output items to send back.
     static async Task<JsonArray> RunToolCallsAsync(JsonElement root)
@@ -246,24 +265,29 @@ static class InvoiceAgentExample
     }
 
     // A stand-in for your ERP or vendor master. Replace it with a real lookup.
+    static readonly Dictionary<string, Supplier> Suppliers = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Fabrikam Office Supplies"] = new("V-1042", "active"),
+        ["Northwind Traders"] = new("V-0877", "on hold")
+    };
+
+    static Supplier? FindSupplier(string supplierName) =>
+        Suppliers.TryGetValue(supplierName.Trim(), out var supplier) ? supplier : null;
+
     static Task<string> CheckSupplierAsync(string supplierName)
     {
-        var suppliers = new Dictionary<string, (string Id, string Status)>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Fabrikam Office Supplies"] = ("V-1042", "active"),
-            ["Northwind Traders"] = ("V-0877", "on hold")
-        };
-
-        var result = suppliers.TryGetValue(supplierName.Trim(), out var supplier)
+        var result = FindSupplier(supplierName) is { } supplier
             ? new JsonObject { ["found"] = true, ["supplier_id"] = supplier.Id, ["status"] = supplier.Status }
             : new JsonObject { ["found"] = false };
 
         return Task.FromResult(result.ToJsonString());
     }
 
-    // Every request in the loop sends the same tool, reasoning effort and output schema.
+    // Every request in the loop sends the same instructions, tool, reasoning effort and output schema.
+    // Instructions don't carry over through previous_response_id, so they go on every turn.
     static void AddToolsAndFormat(JsonObject body)
     {
+        body["instructions"] = Instructions;
         body["tools"] = new JsonArray { CheckSupplierTool() };
         body["reasoning"] = new JsonObject { ["effort"] = "low" };
         // Structured output: the final answer must match the InvoiceReview schema.
@@ -328,6 +352,9 @@ record InvoiceReview(
     decimal Total,
     bool RequiresApproval,
     List<string> Issues);
+
+// A vendor master entry.
+record Supplier(string Id, string Status);
 
 // Sends requests to the Responses API with an API key or an Entra ID token.
 sealed class TerraClient(HttpClient http, string endpoint, string? apiKey, TokenCredential credential, string deployment)
