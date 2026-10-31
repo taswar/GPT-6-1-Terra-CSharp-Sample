@@ -7,6 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
 
+- 📖 Full walkthrough: [GPT-6.1 Terra for C# Developers](https://taswar.zeytinsoft.com/gpt-6-1-terra-csharp-developers-guide/?utm_source=github&utm_medium=readme&utm_campaign=GPT-6.1-Terra&utm_content=walkthrough)
 - ⭐ If this sample helps you, star the repo so other .NET developers can find it.
 - 🔁 Related: [GPT-6.1 Sol C# Demo](https://github.com/taswar/Gpt-6.1-Sol-CSharp-Demo)
 - For more C# samples using other AI models, see [AI models for C# developers](https://taswar.zeytinsoft.com/foundry-ai-models-csharp/?utm_source=github&utm_medium=readme&utm_campaign=GPT-6-1-Terra-CSharp-Sample&utm_content=ai-models-hub)
