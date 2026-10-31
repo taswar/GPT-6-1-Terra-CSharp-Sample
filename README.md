@@ -3,11 +3,12 @@
 > A runnable .NET 10 console app that calls **GPT-6.1 Terra** in **Microsoft Foundry** through the Responses API, covering screenshot analysis and a PDF invoice agent with a tool call and structured output.
 
 ![GPT-6.1 Terra for C#: Fast Vision Agents at Lower Cost](GPT-6.1-Terra-for-CSharp-Fast-Vision-Agents-at-Lower-Cost.webp)
+[![build](https://github.com/taswar/GPT-6-1-Terra-CSharp-Sample/actions/workflows/dotnet.yml/badge.svg)](https://github.com/taswar/GPT-6-1-Terra-CSharp-Sample/actions/workflows/dotnet.yml)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
 
-- 📖 Full walkthrough: [GPT-6.1 Terra for C# Developers](https://taswar.zeytinsoft.com/gpt-6-1-terra-csharp-developers-guide/?utm_source=github&utm_medium=readme&utm_campaign=GPT-6.1-Terra&utm_content=walkthrough)
+- 📖 Full walkthrough: [GPT-6.1 Terra for C# Developers](https://taswar.zeytinsoft.com/gpt-6-1-terra-csharp-developers-guide/?utm_source=github&utm_medium=readme&utm_campaign=GPT-6-1-Terra-CSharp-Sample&utm_content=walkthrough)
 - ⭐ If this sample helps you, star the repo so other .NET developers can find it.
 - 🔁 Related: [GPT-6.1 Sol C# Demo](https://github.com/taswar/Gpt-6.1-Sol-CSharp-Demo)
 - For more C# samples using other AI models, see [AI models for C# developers](https://taswar.zeytinsoft.com/foundry-ai-models-csharp/?utm_source=github&utm_medium=readme&utm_campaign=GPT-6-1-Terra-CSharp-Sample&utm_content=ai-models-hub)
@@ -22,10 +23,10 @@ It's one `Program.cs` that posts JSON to `/openai/v1/responses` with `HttpClient
 | 1 | **Read a screenshot** | Sends `expense-form.png` as an `input_image` and asks what the user is trying to do, what's filled in, what blocks them and which control to use next. |
 | 2 | **Review a PDF invoice** | Sends `invoice.pdf` as an `input_file`, lets Terra call a `check_supplier` tool, and deserializes the strict JSON-schema answer into an `InvoiceReview` C# record. |
 
-Each example prints a usage line like this one:
+Each example prints a usage line. This one is from a real run of Example 2:
 
 ```
-[terra] calls=2 input=3120 cached=0 output=412 reasoning=128 elapsed=7.4s
+[terra] calls=2 input=4201 cached=0 output=140 reasoning=28 elapsed=5.8s
 ```
 
 ## Prerequisites
@@ -117,10 +118,14 @@ Program.cs                           Both examples, TerraClient, the usage repor
 expense-form.png                     Screenshot for Example 1
 invoice.pdf                          Invoice for Example 2
 CONTRIBUTING.md                      How to contribute
+LICENSE                              MIT license
+.github/workflows/dotnet.yml         Build on every push and pull request
+GPT-6.1-Terra-for-CSharp-*.webp      Banner image for this README
 ```
 
 ## Learn more
 
+- [GPT-6.1 Terra for C#: Fast Vision Agents at Lower Cost (blog post)](https://taswar.zeytinsoft.com/gpt-6-1-terra-csharp-developers-guide/?utm_source=github&utm_medium=readme&utm_campaign=GPT-6-1-Terra-CSharp-Sample&utm_content=walkthrough)
 - [GPT-6.1 Sol for C# Developers (blog post)](https://taswar.zeytinsoft.com/gpt-6-1-sol-csharp-developers-guide/?utm_source=github&utm_medium=readme&utm_campaign=GPT-6-1-Terra-CSharp-Sample&utm_content=gpt-6-1-sol-csharp-developers-guide)
 - [Azure OpenAI Responses API](https://learn.microsoft.com/azure/ai-foundry/openai/how-to/responses)
 - [.NET Secret Manager](https://learn.microsoft.com/aspnet/core/security/app-secrets)
